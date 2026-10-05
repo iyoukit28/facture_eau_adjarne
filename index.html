@@ -29,8 +29,8 @@ header .stripe{height:6px;background:linear-gradient(90deg,var(--green) 0 50%,va
 .login .ic{width:76px;height:76px;border-radius:50%;background:var(--green-l);display:flex;align-items:center;justify-content:center;margin:0 auto 12px;font-size:38px;}
 .login h2{color:var(--ink);margin:0 0 6px;font-size:24px;font-weight:900;}
 .login p{margin:0 0 14px;color:var(--muted);font-size:15px;}
-input[type=number]{width:100%;padding:16px;font-size:30px;font-weight:700;text-align:center;border:2px solid var(--line);border-radius:14px;margin:8px 0 12px;background:#fafaf8;letter-spacing:2px;transition:border-color .15s,box-shadow .15s;}
-input[type=number]:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 4px rgba(238,125,34,.18);background:#fff;}
+#meterInput{width:100%;padding:16px;font-size:30px;font-weight:700;text-align:center;border:2px solid var(--line);border-radius:14px;margin:8px 0 12px;background:#fafaf8;letter-spacing:2px;transition:border-color .15s,box-shadow .15s;}
+#meterInput:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 4px rgba(238,125,34,.18);background:#fff;}
 input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;}
 button.main{background:var(--orange);color:#fff;border:0;border-radius:14px;padding:16px 22px;font-size:19px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 4px 14px rgba(238,125,34,.35);transition:transform .1s,background .15s;}
 button.main:hover{background:var(--orange-d);}
@@ -109,7 +109,15 @@ footer b{color:var(--green-d);}
   .latest .detail{padding:10px 16px;font-size:13px;}
 }
 #printArea{display:none;}
-@media print{ body *{visibility:hidden;} #printArea,#printArea *{visibility:visible;} #printArea{display:block;position:absolute;top:0;right:0;left:0;width:100%;} }
+@page{size:A4;margin:10mm;}
+@media print{
+  html,body{background:#fff !important;margin:0 !important;padding:0 !important;height:auto !important;}
+  body>*:not(#printArea){display:none !important;}
+  #printArea{display:block !important;}
+  .inv{max-width:none;margin:0;padding:14px;break-inside:avoid;page-break-inside:avoid;}
+  .inv .sign{margin-top:28px;}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
 .inv{max-width:700px;margin:0 auto;padding:20px;border:2px solid var(--orange);}
 .inv .logo{display:block;max-width:120px;margin:0 auto 6px;}
 .inv h2{color:var(--orange-d);text-align:center;margin:0;font-size:18px;}
@@ -136,7 +144,7 @@ footer b{color:var(--green-d);}
     <div class="ic">💧</div>
     <h2>الاطلاع على فواتيرك</h2>
     <p>أدخل رقم عدّادك (من 1 إلى 40)</p>
-    <input type="number" id="meterInput" min="1" max="40" placeholder="رقم العداد" inputmode="numeric" autocomplete="off">
+    <input type="text" id="meterInput" maxlength="2" placeholder="رقم العداد" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
     <button class="main" onclick="lookup()">عرض فواتيري</button>
     <div class="err" id="err"></div>
     <p class="hint">🔄 يُحدَّث الموقع بعد كل إصدار جديد للفواتير.</p>
@@ -202,10 +210,11 @@ function latestName(m){let r=DATA.filter(x=>x.meter===m).sort((a,b)=>orderIdx(b.
 const SEM_AR={"1":"أشهر 1 إلى 6","2":"أشهر 7 إلى 12"};
 function periodLabel(p){let [y,c]=p.split('-');if(!c)return p;let s=c.startsWith('S');let q=c.replace(/[QS]/,'');let t=s?SEM_AR[q]:PERIOD_AR[q];return t?t+' '+y:p;}
 function periodShort(p){let [y,c]=p.split('-');if(!c)return p;let s=c.startsWith('S');let q=c.replace(/[QS]/,'');return (s?SEM_AR[q]:PERIOD_AR[q])||p;}
+function nd(s){return String(s).replace(/[٠-٩]/g,d=>d.charCodeAt(0)-1632).replace(/[۰-۹]/g,d=>d.charCodeAt(0)-1776);}
 function fmt(v){return v==null?'—':v;}
 let chart=null;
 function lookup(){
-  const v=parseInt(document.getElementById('meterInput').value,10);const err=document.getElementById('err');
+  const v=parseInt(nd(document.getElementById('meterInput').value),10);const err=document.getElementById('err');
   if(!v||v<1||v>40){err.textContent='الرجاء إدخال رقم عداد صحيح بين 1 و 40.';return;}
   let recs=DATA.filter(r=>r.meter===v);
   if(!recs.length){err.textContent='لا توجد فواتير لهذا العداد.';return;}
@@ -254,9 +263,9 @@ function renderTable(list){
     body.appendChild(tr);});
 }
 function filterTable(){
-  let q=document.getElementById('searchBox').value.trim();let yr=document.getElementById('yearFilter').value;let list=window._hist||[];
+  let q=nd(document.getElementById('searchBox').value).trim();let yr=document.getElementById('yearFilter').value;let list=window._hist||[];
   if(yr)list=list.filter(r=>String(r.year)===yr);
-  if(q)list=list.filter(r=>(periodLabel(r.period)+' '+r.period+' '+(r.date||'')+' '+(r.inv||'')+' '+(r.notes||'')).includes(q));
+  if(q)list=list.filter(r=>nd(periodLabel(r.period)+' '+r.period+' '+(r.date||'')+' '+(r.inv||'')+' '+(r.notes||'')).includes(q));
   renderTable(list);
 }
 function goBack(){document.getElementById('dashView').style.display='none';document.getElementById('loginView').style.display='block';document.getElementById('meterInput').value='';document.getElementById('meterInput').focus();}
@@ -280,6 +289,7 @@ function printInv(r){
   </div>`;window.print();
 }
 document.getElementById('hdrLogo').src=LOGO;
+document.getElementById('meterInput').addEventListener('input',e=>{e.target.value=nd(e.target.value).replace(/\D/g,'');});
 document.getElementById('meterInput').addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});
 try{let lm=localStorage.getItem('lastMeter');if(lm){document.getElementById('meterInput').value=lm;}}catch(e){}
 </script>
